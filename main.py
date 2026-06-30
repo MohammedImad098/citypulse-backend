@@ -158,6 +158,8 @@ def delete_incident(incident_id: str):
 @app.post("/incidents")
 def add_incident(incident: dict):
     try:
+        print(f"[add_incident] received source={incident.get('source')!r} cv_verified={incident.get('cv_verified')!r}")
+
         severity = float(incident.get("severity", 3))
         borough  = (incident.get("borough") or "").upper().strip()
         month    = datetime.now().month
@@ -194,6 +196,8 @@ def add_incident(incident: dict):
             f"score=({severity}×{weather})+{impact}+{complaints}+{accessibility}={priority_score} | "
             f"thresholds=({p25},{p50},{p75}) | label={priority_label}"
         )
+
+        print(f"[add_incident] inserting source={incident.get('source')!r} cv_verified={incident.get('cv_verified')!r}")
 
         result = supabase.table("incidents").insert(incident).execute()
         return result.data[0] if result.data else {}
