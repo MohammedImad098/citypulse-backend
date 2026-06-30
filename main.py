@@ -55,18 +55,22 @@ ACCESSIBILITY_BY_BOROUGH = {
 # ── Dataset stats (computed once at startup) ───────────────────────────────────
 
 _borough_avg_complaints: dict[str, float] = {}
-_thresholds: tuple[float, float, float] = (6.63, 7.42, 8.14)  # fallback
+
+# Fixed thresholds calibrated for the manual-incident scoring formula.
+# The 311 dataset was scored by a different ML pipeline, so dynamically
+# re-deriving p25/p50/p75 from those scores produces incompatible cutoffs.
+THRESHOLDS: tuple[float, float, float] = (6.63, 7.42, 8.14)
 
 
 def _load_dataset_stats() -> None:
-    global _borough_avg_complaints, _thresholds
+    global _borough_avg_complaints  # noqa: PLW0603
     try:
         all_rows = []
         batch, offset = 1000, 0
         while True:
             result = (
                 supabase.table("incidents")
-                .select("borough,complaints,priority_score")
+                .select("borough,complaints")
                 .range(offset, offset + batch - 1)
                 .execute()
             )
@@ -76,20 +80,13 @@ def _load_dataset_stats() -> None:
             offset += batch
 
         borough_complaints: dict[str, list[float]] = defaultdict(list)
-        scores: list[float] = []
 
         for row in all_rows:
             b = (row.get("borough") or "").upper().strip()
             c = row.get("complaints")
-            s = row.get("priority_score")
             if c is not None:
                 try:
                     borough_complaints[b].append(float(c))
-                except (ValueError, TypeError):
-                    pass
-            if s is not None:
-                try:
-                    scores.append(float(s))
                 except (ValueError, TypeError):
                     pass
 
@@ -97,15 +94,6 @@ def _load_dataset_stats() -> None:
             b: round(sum(vals) / len(vals), 3)
             for b, vals in borough_complaints.items() if vals
         }
-
-        if len(scores) >= 4:
-            scores.sort()
-            n = len(scores)
-            _thresholds = (
-                scores[int(n * 0.25)],
-                scores[int(n * 0.50)],
-                scores[int(n * 0.75)],
-            )
 
         print(f"[startup] loaded {len(all_rows)} rows")
         print(f"[startup] borough avg complaints: {_borough_avg_complaints}")
@@ -178,7 +166,7 @@ def add_incident(incident: dict):
         # [5] after priority_score
         print(f"[5] priority_score={priority_score}")
 
-        p25, p50, p75 = _thresholds
+        p25, p50, p75 = THRESHOLDS
 
         # [6] before label assignment
         print(f"[6] score={priority_score} vs p25={p25} p50={p50} p75={p75} → ", end="")
