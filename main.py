@@ -45,6 +45,14 @@ def get_incidents(borough: str = None):
         offset += batch
     return all_data
 
+@app.delete("/incidents/{incident_id}")
+def delete_incident(incident_id: str):
+    try:
+        result = supabase.table("incidents").delete().eq("id", incident_id).execute()
+        return {"deleted": incident_id}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @app.post("/incidents")
 def add_incident(incident: dict):
     try:
