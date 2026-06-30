@@ -20,6 +20,12 @@ supabase = create_client(
     os.getenv("SUPABASE_KEY")
 )
 
+# Service-role client for privileged operations (DELETE)
+supabase_admin = create_client(
+    os.getenv("SUPABASE_URL"),
+    os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY")
+)
+
 @app.get("/")
 def root():
     return {"message": "CityPulse AI Backend is running"}
@@ -48,7 +54,7 @@ def get_incidents(borough: str = None):
 @app.delete("/incidents/{incident_id}")
 def delete_incident(incident_id: str):
     try:
-        result = supabase.table("incidents").delete().eq("id", incident_id).execute()
+        supabase_admin.table("incidents").delete().eq("id", incident_id).execute()
         return {"deleted": incident_id}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
