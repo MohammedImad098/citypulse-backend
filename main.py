@@ -97,7 +97,7 @@ def _load_dataset_stats() -> None:
 
         print(f"[startup] loaded {len(all_rows)} rows")
         print(f"[startup] borough avg complaints: {_borough_avg_complaints}")
-        print(f"[startup] thresholds p25={_thresholds[0]:.3f} p50={_thresholds[1]:.3f} p75={_thresholds[2]:.3f}")
+        print(f"[startup] using fixed thresholds p25={THRESHOLDS[0]} p50={THRESHOLDS[1]} p75={THRESHOLDS[2]}")
 
     except Exception as e:
         print(f"[startup] stats load failed, using fallbacks: {e}")
@@ -146,6 +146,10 @@ def delete_incident(incident_id: str):
 @app.post("/incidents")
 def add_incident(incident: dict):
     try:
+        # [1] complete raw request body
+        import json as _json
+        print(f"[raw] {_json.dumps(incident, default=str)}")
+
         # [3] received severity
         print(f"[3] received severity={incident.get('severity')!r} (type={type(incident.get('severity')).__name__}) source={incident.get('source')!r}")
 
