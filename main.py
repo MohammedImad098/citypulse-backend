@@ -48,6 +48,37 @@ def get_incidents(borough: str = None):
 @app.post("/incidents")
 def add_incident(incident: dict):
     try:
+        # Calculate priority using submitted severity + typical defaults for manual reports
+        severity     = float(incident.get("severity", 3))
+        weather      = 1.2   # slight weather risk
+        complaints   = 1.0   # single complaint
+        impact       = 2.5   # moderate community impact
+        accessibility = 1.0  # average
+
+        priority_score = round((severity * weather) + impact + complaints + accessibility, 2)
+
+        # Thresholds from dataset percentiles: p25=6.63, p50=7.42, p75=8.14
+        if priority_score >= 8.14:
+            priority_label = "Critical"
+        elif priority_score >= 7.42:
+            priority_label = "High"
+        elif priority_score >= 6.63:
+            priority_label = "Medium"
+        else:
+            priority_label = "Low"
+
+        incident.update({
+            "weather":       weather,
+            "complaints":    complaints,
+            "impact":        impact,
+            "accessibility": accessibility,
+            "priority_score": priority_score,
+            "priority_label": priority_label,
+        })
+
+        print(f"[add_incident] damage_type={incident.get('damage_type')} severity={severity} "
+              f"priority_score={priority_score} priority_label={priority_label}")
+
         result = supabase.table("incidents").insert(incident).execute()
         return result.data[0] if result.data else {}
     except Exception as e:
