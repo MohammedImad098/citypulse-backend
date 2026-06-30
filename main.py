@@ -158,7 +158,8 @@ def delete_incident(incident_id: str):
 @app.post("/incidents")
 def add_incident(incident: dict):
     try:
-        print(f"[add_incident] received source={incident.get('source')!r} cv_verified={incident.get('cv_verified')!r}")
+        # [3] received severity
+        print(f"[3] received severity={incident.get('severity')!r} (type={type(incident.get('severity')).__name__}) source={incident.get('source')!r}")
 
         severity = float(incident.get("severity", 3))
         borough  = (incident.get("borough") or "").upper().strip()
@@ -169,9 +170,19 @@ def add_incident(incident: dict):
         accessibility = ACCESSIBILITY_BY_BOROUGH.get(borough, 1.0)
         complaints    = _borough_avg_complaints.get(borough, 1.5)
 
+        # [4] before priority_score
+        print(f"[4] borough={borough!r} severity={severity} weather={weather} impact={impact} complaints={complaints} accessibility={accessibility}")
+
         priority_score = round((severity * weather) + impact + complaints + accessibility, 2)
 
+        # [5] after priority_score
+        print(f"[5] priority_score={priority_score}")
+
         p25, p50, p75 = _thresholds
+
+        # [6] before label assignment
+        print(f"[6] score={priority_score} vs p25={p25} p50={p50} p75={p75} → ", end="")
+
         if priority_score >= p75:
             priority_label = "Critical"
         elif priority_score >= p50:
@@ -180,6 +191,8 @@ def add_incident(incident: dict):
             priority_label = "Medium"
         else:
             priority_label = "Low"
+
+        print(priority_label)
 
         incident.update({
             "weather":        weather,
@@ -190,14 +203,7 @@ def add_incident(incident: dict):
             "priority_label": priority_label,
         })
 
-        print(
-            f"[add_incident] borough={borough} month={month} severity={severity} | "
-            f"weather={weather} impact={impact} complaints={complaints} accessibility={accessibility} | "
-            f"score=({severity}×{weather})+{impact}+{complaints}+{accessibility}={priority_score} | "
-            f"thresholds=({p25},{p50},{p75}) | label={priority_label}"
-        )
-
-        print(f"[add_incident] inserting source={incident.get('source')!r} cv_verified={incident.get('cv_verified')!r}")
+        print(f"[insert] source={incident.get('source')!r} priority_label={priority_label!r}")
 
         result = supabase.table("incidents").insert(incident).execute()
         return result.data[0] if result.data else {}
