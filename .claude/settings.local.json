@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npx skills add shadcn/ui)",
+      "PowerShell(npx skills add Jakubantalik/transitions.dev)"
+    ]
+  }
+}
