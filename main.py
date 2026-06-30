@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client
 from dotenv import load_dotenv
@@ -47,5 +47,8 @@ def get_incidents(borough: str = None):
 
 @app.post("/incidents")
 def add_incident(incident: dict):
-    result = supabase.table("incidents").insert(incident).execute()
-    return result.data
+    try:
+        result = supabase.table("incidents").insert(incident).execute()
+        return result.data[0] if result.data else {}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
