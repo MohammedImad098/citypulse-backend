@@ -90,8 +90,13 @@ def add_incident(incident: dict):
             "priority_label": priority_label,
         })
 
-        print(f"[add_incident] damage_type={incident.get('damage_type')} severity={severity} "
-              f"priority_score={priority_score} priority_label={priority_label}")
+        print(
+            f"[add_incident] damage_type={incident.get('damage_type')} | "
+            f"severity={severity} | weather={weather} | impact={impact} | "
+            f"complaints={complaints} | accessibility={accessibility} | "
+            f"score=({severity}×{weather})+{impact}+{complaints}+{accessibility}"
+            f"={priority_score} | label={priority_label}"
+        )
 
         result = supabase.table("incidents").insert(incident).execute()
         return result.data[0] if result.data else {}
